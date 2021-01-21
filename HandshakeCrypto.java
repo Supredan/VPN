@@ -49,15 +49,13 @@ public class HandshakeCrypto {
 
     public static PublicKey getPublicKeyFromCertString(String certString) throws IOException, CertificateException {
         InputStream inStream = null;
-        X509Certificate cert;
+        X509Certificate cert = null;
         try {
             inStream =  new ByteArrayInputStream(certString.getBytes(StandardCharsets.UTF_8));;
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             cert = (X509Certificate) cf.generateCertificate(inStream);
-        } finally{
-            if (inStream != null) {
-                inStream.close();
-            }
+        } catch (CertificateException e) {
+            e.printStackTrace();
         }
         return cert.getPublicKey();
     }

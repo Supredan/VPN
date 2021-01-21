@@ -1,11 +1,11 @@
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.PublicKey;
 import java.security.cert.*;
+import java.util.Base64;
+import java.util.Base64.Decoder;
 
 public class VerifyCertificate {
 
@@ -28,8 +28,9 @@ public class VerifyCertificate {
     public static X509Certificate getCertificateByContent(String Certificate) throws IOException, CertificateException {
         InputStream inStream = null;
         X509Certificate cert;
+        Decoder decoder = Base64.getDecoder();
         try {
-            inStream = new ByteArrayInputStream(Certificate.getBytes(StandardCharsets.UTF_8));
+            inStream = new ByteArrayInputStream(decoder.decode(Certificate));
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             cert = (X509Certificate) cf.generateCertificate(inStream);
         } finally {
@@ -38,6 +39,12 @@ public class VerifyCertificate {
             }
         }
         return cert;
+    }
+
+    public static PublicKey getPublicKeyFromCertFile(String Certificate) throws FileNotFoundException, CertificateException {
+        FileInputStream fileInputStream = new FileInputStream(Certificate);
+        X509Certificate x509Certificate = (X509Certificate)CertificateFactory.getInstance("X.509").generateCertificate(fileInputStream);
+        return x509Certificate.getPublicKey();
     }
 
     public static void getVerify(X509Certificate CA, X509Certificate User) throws Exception {
@@ -58,10 +65,11 @@ public class VerifyCertificate {
 
     public static void verifyHandshake(String ca, String user) throws Exception {
         try {
+
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
 //            X509Certificate CA = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(ca.getBytes(StandardCharsets.UTF_8)));
             X509Certificate CA = getCertificate(ca);
-            X509Certificate User = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(user.getBytes(StandardCharsets.UTF_8)));
+            X509Certificate User = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(Base64.getDecoder().decode(user)));
             CA.checkValidity();
             User.checkValidity();
             CA.verify(CA.getPublicKey());

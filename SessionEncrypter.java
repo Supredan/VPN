@@ -3,50 +3,48 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.OutputStream;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Base64;
 
 public class SessionEncrypter {
     private static final String METHOD = "AES/CTR/NoPadding";
     private SessionKey sessionKey;
     private Cipher cipher;
-    private IvParameterSpec ivParameterSpec;
 
-    public SessionEncrypter(Integer keylength) {
-        try {
-            this.sessionKey = new SessionKey(keylength);
-            this.cipher = Cipher.getInstance(METHOD);
-            byte[] iv = new byte[cipher.getBlockSize()];
-            new SecureRandom().nextBytes(iv);
-            this.ivParameterSpec = new IvParameterSpec(iv);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    public SessionEncrypter(byte[] keybytes, byte[] ivbytes) throws NoSuchPaddingException, NoSuchAlgorithmException {
+    public SessionEncrypter(Integer length) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+        this.sessionKey = new SessionKey(length);
         this.cipher = Cipher.getInstance(METHOD);
-        this.sessionKey = new SessionKey(keybytes);
-        this.ivParameterSpec = new IvParameterSpec(ivbytes);
+        this.cipher.init(1, this.sessionKey.getSecretKey());
     }
 
-  
+    public SessionEncrypter(String keyBytes, String ivBytes) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
+        this.cipher = Cipher.getInstance(METHOD);
+        this.sessionKey = new SessionKey(keyBytes);
+        this.cipher.init(1, this.sessionKey.getSecretKey(), new IvParameterSpec(
+                Base64.getDecoder().decode(ivBytes)
+        ));
+    }
 
     public byte[] getKeyBytes() {
         return this.sessionKey.getSecretKey().getEncoded();
     }
 
     public byte[] getIVBytes() {
-        return this.ivParameterSpec.getIV();
+        return this.cipher.getIV();
     }
     public CipherOutputStream openCipherOutputStream(OutputStream output) {
-        try {
-            this.cipher.init(Cipher.ENCRYPT_MODE, this.sessionKey.getSecretKey(), this.ivParameterSpec);
-            return new CipherOutputStream(output, cipher);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        return new CipherOutputStream(output, this.cipher);
+    }
+
+    public String encodeKey() {
+        return this.sessionKey.encodeKey();
+    }
+
+    public String encodeIV() {
+        byte[] iv = this.cipher.getIV();
+        return Base64.getEncoder().encodeToString(iv);
     }
 }

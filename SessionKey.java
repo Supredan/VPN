@@ -2,8 +2,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.NoSuchAlgorithmException;
-
-
+import java.util.Base64;
 
 
 public class SessionKey {
@@ -22,6 +21,11 @@ public class SessionKey {
        
       }
 
+    public SessionKey(String s) {
+        byte[] decode = Base64.getDecoder().decode(s);
+        this.secretKey = new SecretKeySpec(decode, "AES");
+    }
+
     public SecretKey getSecretKey() {
         return this.secretKey;
     }
@@ -30,6 +34,10 @@ public class SessionKey {
      
     	return this.secretKey.getEncoded();
     	    }
- 
+
+    public String encodeKey() {
+        byte[] encoded = this.secretKey.getEncoded();
+        return Base64.getEncoder().encodeToString(encoded);
+    }
 }
 

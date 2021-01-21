@@ -89,7 +89,11 @@ public class ForwardClient
         ForwardServerClientThread forwardThread =
             new ForwardServerClientThread(proxySocket,
                                           clientHandshake.sessionHost, clientHandshake.sessionPort);
-        /* 
+        forwardThread.setEncryption(null,
+                null,
+                clientHandshake.sessionEncrypter,
+                clientHandshake.sessionDecrypter);
+        /*
          * Launch the fowarder 
          */
         forwardThread.start();

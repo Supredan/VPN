@@ -5,8 +5,12 @@
 import java.net.Socket;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.cert.CertificateException;
+import java.util.Base64;
+import java.util.Base64.Decoder;
+import java.util.Base64.Encoder;
 
 public class ClientHandshake {
     /*
@@ -15,13 +19,11 @@ public class ClientHandshake {
      */
     
     /* Session host/port  */
-    public static String sessionHost = "localhost";
-    public static int sessionPort = 12345;    
+    public String sessionHost = "localhost";
+    public int sessionPort = 12345;
 
-    /* Security parameters key/iv should also go here. Fill in! */
-    public static String clientCertPath = "./cert-file/client/client.pem";
-    public static SessionDecrypter sessionDecrypter;
-
+    public SessionDecrypter sessionDecrypter;
+    public SessionEncrypter sessionEncrypter;
     /**
      * Run client handshake protocol on a handshake socket. 
      * Here, we do nothing, for now.
@@ -30,7 +32,7 @@ public class ClientHandshake {
         try {
             HandshakeMessage clientHello = new HandshakeMessage();
             clientHello.putParameter("MessageType", "ClientHello");
-            clientHello.putParameter("Certificate", new String(Files.readAllBytes(Paths.get(
+            clientHello.putParameter("Certificate", Base64.getEncoder().encodeToString(Files.readAllBytes(Paths.get(
                     ForwardClient.getArgument().get("usercert")))));
             clientHello.send(handshakeSocket);
 
@@ -48,15 +50,31 @@ public class ClientHandshake {
 
             HandshakeMessage session = new HandshakeMessage();
             session.recv(handshakeSocket);
-            sessionHost = session.getParameter("SessionHost");
-            sessionPort = Integer.parseInt(session.getParameter("SessionPort"));
-            sessionDecrypter = new SessionDecrypter(
-                    HandshakeCrypto.decrypt(session.getParameter("SessionKey").getBytes(),
-                            HandshakeCrypto.getPrivateKeyFromKeyString(
-                                    ForwardClient.getArgument().get("usercert")
-                            )),
-                    session.getParameter("SessionIV").getBytes()
+            sessionHost = session.getProperty("SessionHost");
+            sessionPort = Integer.parseInt(session.getProperty("SessionPort"));
+
+
+            Encoder encoder = Base64.getEncoder();
+            Decoder decoder = Base64.getDecoder();
+            sessionEncrypter = new SessionEncrypter(
+                    encoder.encodeToString(
+                            HandshakeCrypto.decrypt(
+                                    decoder.decode(session.getProperty("SessionKey")),
+                                    HandshakeCrypto.getPrivateKeyFromKeyFile(ForwardClient.getArgument().get("key"))
+                                    )
+                    ),
+                    encoder.encodeToString(
+                            HandshakeCrypto.decrypt(
+                                    decoder.decode(session.getProperty("SessionIV")),
+                                    HandshakeCrypto.getPrivateKeyFromKeyFile(ForwardClient.getArgument().get("key"))
+                            )
+                    )
             );
+            sessionDecrypter = new SessionDecrypter(
+                    sessionEncrypter.encodeKey(),
+                    sessionEncrypter.encodeIV()
+            );
+
         } catch (Exception e) {
             System.out.println(e.toString());
         }

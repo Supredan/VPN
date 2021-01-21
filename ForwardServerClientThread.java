@@ -36,6 +36,12 @@ public class ForwardServerClientThread extends Thread
     private String mServerHostPort;
     private int mServerPort;
     private String mServerHost;
+    private SessionEncrypter encrypter = null;
+    private SessionDecrypter decrypter = null;
+    private SessionEncrypter clientEncrypter = null;
+    private SessionDecrypter clientDecrypter = null;
+    private SessionEncrypter serverEncrypter = null;
+    private SessionDecrypter serverDecrypter = null;
 
     /**
      * Creates a client thread for handling clients of NakovForwardServer.
@@ -47,6 +53,21 @@ public class ForwardServerClientThread extends Thread
         mListenSocket = listensocket;
         mServerPort = serverport;
         mServerHost = serverhost;
+    }
+
+    public void setEncryption(SessionEncrypter sessionEncrypter, SessionDecrypter sessionDecrypter) {
+        this.encrypter = sessionEncrypter;
+        this.decrypter = sessionDecrypter;
+    }
+
+    public void setEncryption(SessionEncrypter sessionEncrypter,
+                              SessionDecrypter sessionDecrypter,
+                              SessionEncrypter sessionEncrypted1,
+                              SessionDecrypter sessionDecrypter1) {
+        this.clientEncrypter = sessionEncrypter;
+        this.clientDecrypter = sessionDecrypter;
+        this.serverEncrypter = sessionEncrypted1;
+        this.serverDecrypter = sessionDecrypter1;
     }
 
     public ServerSocket getListenSocket() {
@@ -67,7 +88,7 @@ public class ForwardServerClientThread extends Thread
  
             // Wait for incoming connection on listen socket
             mClientSocket = mListenSocket.accept();
-            mClientHostPort = mClientSocket.getInetAddress().getHostName() + ":" + mClientSocket.getPort();
+            mClientHostPort = mClientSocket.getInetAddress().getHostAddress() + ":" + mClientSocket.getPort();
             Logger.log("Accepted from " + mClientHostPort + " on " + mListenSocket.getLocalPort());
                
             try {
@@ -84,6 +105,18 @@ public class ForwardServerClientThread extends Thread
             OutputStream clientOut = mClientSocket.getOutputStream();
             InputStream serverIn = mServerSocket.getInputStream();
             OutputStream serverOut = mServerSocket.getOutputStream();
+            if (clientEncrypter != null) {
+                clientOut = clientEncrypter.openCipherOutputStream(clientOut);
+            }
+            if (clientDecrypter != null) {
+                clientIn = clientDecrypter.openCipherInputStream(clientIn);
+            }
+            if (serverEncrypter != null) {
+                serverOut = serverEncrypter.openCipherOutputStream(serverOut);
+            }
+            if (serverDecrypter != null) {
+                serverIn = serverDecrypter.openCipherInputStream(serverIn);
+            }
 
             mServerHostPort = mServerHost + ":" + mServerPort;
             Logger.log("TCP Forwarding  " + mClientHostPort + " <--> " + mServerHostPort + "  started.");

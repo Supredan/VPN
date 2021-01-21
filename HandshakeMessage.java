@@ -77,4 +77,11 @@ public class HandshakeMessage extends Properties {
         this.loadFromXML(new ByteArrayInputStream(data));
     }
 
+    public static void checkMessageType(HandshakeMessage handshakeMessage, String s) {
+        String messageType = handshakeMessage.getParameter("MessageType");
+        if (!s.equals(messageType)) {
+            throw new IllegalArgumentException("Wrong HandShake Type");
+        }
+    }
+
 };

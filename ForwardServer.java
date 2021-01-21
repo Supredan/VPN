@@ -48,6 +48,7 @@ public class ForwardServer
     private void doHandshake(Socket handshakeSocket) throws UnknownHostException, IOException, Exception {
 
         serverHandshake = new ServerHandshake(handshakeSocket);
+        this.handshakeListenSocket = serverHandshake.sessionSocket;
     }
 
     /**
@@ -73,7 +74,7 @@ public class ForwardServer
         while(true) {
 
             Socket handshakeSocket = handshakeListenSocket.accept();
-            String clientHostPort = handshakeSocket.getInetAddress().getHostName() + ":" +
+            String clientHostPort = handshakeSocket.getInetAddress().getHostAddress() + ":" +
                 handshakeSocket.getPort();
             Logger.log("Incoming handshake connection from " + clientHostPort);
 
@@ -88,6 +89,10 @@ public class ForwardServer
             ForwardServerClientThread forwardThread;
             forwardThread = new ForwardServerClientThread(serverHandshake.sessionSocket,
                                                           serverHandshake.targetHost, serverHandshake.targetPort);
+            forwardThread.setEncryption(serverHandshake.sessionEncrypter,
+                    serverHandshake.sessionDecrypter,
+                    null,
+                    null);
             forwardThread.start();
         }
     }
